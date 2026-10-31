@@ -1,0 +1,44 @@
+
+name: Export existing VORTEX signing key (encrypted)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore the original cached debug keystore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: vortex-player-debug-signing-v1
+          fail-on-cache-miss: true
+
+      - name: Verify key and encrypt it
+        shell: bash
+        env:
+          VORTEX_KEY_EXPORT_PASSWORD: ${{ secrets.VORTEX_KEY_EXPORT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -s ~/.android/debug.keystore
+          if [[ -z "$VORTEX_KEY_EXPORT_PASSWORD" ]]; then
+            echo "Add a repository secret named VORTEX_KEY_EXPORT_PASSWORD first." >&2
+            exit 1
+          fi
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in ~/.android/debug.keystore \
+            -out "$RUNNER_TEMP/vortex-debug-keystore.enc" \
+            -pass env:VORTEX_KEY_EXPORT_PASSWORD
+
+      - name: Upload encrypted signing key
+        uses: actions/upload-artifact@v4
+        with:
+          name: VORTEX-ENCRYPTED-KEY-MIGRATION
+          path: ${{ runner.temp }}/vortex-debug-keystore.enc
+          if-no-files-found: error
+          retention-days: 1
