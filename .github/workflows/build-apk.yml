@@ -30,12 +30,18 @@ jobs:
           channel: stable
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          accept-android-sdk-licenses: false
+          log-accepted-android-sdk-licenses: false
+          packages: ''
 
-      - name: Install Android NDK 27
+      - name: Accept licenses and install Android NDK
+        shell: bash
         run: |
+          set +o pipefail
           yes | sdkmanager --licenses
-          sdkmanager "ndk;27.0.12077973"
+          sdkmanager "platform-tools" "ndk;27.0.12077973"
 
       - name: Restore stable VORTEX signing key
         uses: actions/cache@v4
