@@ -14,20 +14,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract Flutter project
-        run: unzip -o neon_pixel_ready_for_build.zip -d .
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.38.10'
           channel: stable
+          cache: true
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
@@ -36,12 +35,12 @@ jobs:
           log-accepted-android-sdk-licenses: false
           packages: ''
 
-      - name: Accept licenses and install Android NDK
+      - name: Accept SDK licenses and install Android NDK 27
         shell: bash
         run: |
           set +o pipefail
           yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "ndk;27.0.12077973"
+          sdkmanager "ndk;27.0.12077973"
 
       - name: Restore stable VORTEX signing key
         uses: actions/cache@v4
@@ -49,7 +48,10 @@ jobs:
           path: ~/.android/debug.keystore
           key: vortex-player-debug-signing-v1
 
-      - name: Install dependencies
+      - name: Make Gradle wrapper executable
+        run: chmod +x android/gradlew
+
+      - name: Install Flutter dependencies
         run: flutter pub get
 
       - name: Build APK
@@ -60,3 +62,5 @@ jobs:
         with:
           name: VORTEX-PLAYER-APK
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
